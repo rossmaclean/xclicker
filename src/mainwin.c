@@ -28,11 +28,13 @@ struct _MainAppWindow
 	GtkWidget *x_entry;
 	GtkWidget *y_entry;
 	GtkWidget *random_interval_entry;
+    GtkWidget *hold_entry;
 
 	// Checkboxes
 	GtkWidget *repeat_only_check;
 	GtkWidget *custom_location_check;
 	GtkWidget *random_interval_check;
+    GtkWidget *hold_check;
 
 	// Buttons
 	GtkWidget *start_button;
@@ -59,6 +61,9 @@ struct click_opts
 
 	gboolean random_interval;
 	int random_interval_ms;
+
+    gboolean hold;
+    int hold_ms;
 };
 
 /**
@@ -97,6 +102,7 @@ void toggle_buttons()
 void click_handler(gpointer *data)
 {
 	struct click_opts *args = data;
+    printf("Data hold %d \n", args->hold_ms);
 	Display *display = get_display();
 	int count = 0;
 	while (isClicking)
@@ -107,16 +113,16 @@ void click_handler(gpointer *data)
 		switch (args->click_type)
 		{
 		case CLICK_TYPE_SINGLE:
-			if (click(display, args->button, is_using_xevent()) == FALSE)
+			if (click(display, args->button, is_using_xevent(), args->hold_ms) == FALSE)
 				g_printerr("Error when sending click");
 			break;
 		case CLICK_TYPE_DOUBLE:
-			if (click(display, args->button, is_using_xevent()) == FALSE)
+			if (click(display, args->button, is_using_xevent(), 0) == FALSE)
 				g_printerr("Error when sending click");
 
 			usleep(150000); // 150 milliseconds
 
-			if (click(display, args->button, is_using_xevent()) == FALSE)
+			if (click(display, args->button, is_using_xevent(), args->hold_ms) == FALSE)
 				g_printerr("Error when sending click");
 			break;
 		}
@@ -258,6 +264,11 @@ void custom_location_check_toggle(GtkToggleButton *check)
 	gtk_widget_set_sensitive(mainappwindow.get_button, active);
 }
 
+void hold_check_toggle(GtkToggleButton *check)
+{
+    gtk_widget_set_sensitive(mainappwindow.hold_entry, gtk_toggle_button_get_active(check));
+}
+
 /**
  * Prevents other input than 0-9
  */
@@ -321,6 +332,12 @@ void start_clicked()
 
 	if ((data->random_interval = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mainappwindow.random_interval_check))))
 		data->random_interval_ms = get_text_to_int(mainappwindow.random_interval_entry);
+
+    printf("About to check hold\n");
+    if ((data->hold = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mainappwindow.hold_check))))
+        printf("Hold is true\n");
+        data->hold_ms = get_text_to_int(mainappwindow.hold_entry);
+    printf("Checked hold\n");
 	g_thread_new("click_handler", click_handler, data);
 }
 
@@ -472,11 +489,13 @@ static void main_app_window_init(MainAppWindow *win)
 	mainappwindow.x_entry = win->x_entry;
 	mainappwindow.y_entry = win->y_entry;
 	mainappwindow.random_interval_entry = win->random_interval_entry;
+    mainappwindow.hold_entry = win->hold_entry;
 
 	// Checkboxes
 	mainappwindow.repeat_only_check = win->repeat_only_check;
 	mainappwindow.custom_location_check = win->custom_location_check;
 	mainappwindow.random_interval_check = win->random_interval_check;
+    mainappwindow.hold_check = win->hold_check;
 
 	// Buttons
 	mainappwindow.start_button = win->start_button;
@@ -503,6 +522,7 @@ static void main_app_window_class_init(MainAppWindowClass *class)
 	gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(class), custom_location_check_toggle);
 	gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(class), get_button_clicked);
 	gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(class), random_interval_check_toggle);
+    gtk_widget_class_bind_template_callback(GTK_WIDGET_CLASS(class), hold_check_toggle);
 
 	// Entries
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, hours_entry);
@@ -515,11 +535,13 @@ static void main_app_window_class_init(MainAppWindowClass *class)
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, x_entry);
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, y_entry);
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, random_interval_entry);
+	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, hold_entry);
 
 	// Checkboxes
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, repeat_only_check);
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, custom_location_check);
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, random_interval_check);
+    gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, hold_check);
 
 	// Buttons
 	gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MainAppWindow, start_button);

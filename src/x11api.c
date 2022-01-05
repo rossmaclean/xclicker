@@ -88,8 +88,10 @@ int cxevent(Display *display, long mask, XButtonEvent event)
     return TRUE;
 }
 
-int click(Display *display, int button, int mode)
+int click(Display *display, int button, int mode, int duration)
 {
+    printf("Inside click method\n");
+    printf("Mode %d\n", mode);
     switch (mode)
     {
     case CLICK_MODE_XEVENT:
@@ -113,6 +115,11 @@ int click(Display *display, int button, int mode)
         event.type = ButtonPress;
         if (!cxevent(display, ButtonPressMask, event))
             return FALSE;
+
+        // Needs xevent true to come here?
+        printf("Duration %d\n", duration);
+        if (duration > 0)
+            usleep(duration * 1000); // Used for click and hold
 
         // Release
         event.type = ButtonRelease;
